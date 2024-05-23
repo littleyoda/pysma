@@ -6,15 +6,16 @@ Improved with Information from https://github.com/mhop/fhem-mirror/blob/master/f
 Receiver classes completely reimplemented by little.yoda
 
 """
-import ctypes
-from .const import Identifier
-from .sensor import Sensor
-from .const import SMATagList
-import time
-from typing import Any, Dict, Optional, List, Annotated
-import dataclasses_struct as dcs
-from ctypes import LittleEndianStructure
 
+import ctypes
+import time
+from ctypes import LittleEndianStructure
+from typing import Annotated, Any, Dict, List, Optional
+
+import dataclasses_struct as dcs
+
+from .const import Identifier, SMATagList
+from .sensor import Sensor
 
 responseDef = {
     "00464B01": [],  # Netzspannung Phase L1 gegen L2
@@ -32,7 +33,7 @@ responseDef = {
             "format": "version",
             "sensor": Sensor("Firmware", Identifier.device_sw_version),
             "idx": 4,
-            "overwrite": False            
+            "overwrite": False,
         }
     ],
     "00260101": [
@@ -115,8 +116,7 @@ responseDef = {
                     mapper=SMATagList,
                 ),
             ],
-            "mask": 0x00FFFFFF,
-            "idx": 0,
+            "idx": 0xFF,
         }
     ],
     "0046C201": [
@@ -199,11 +199,10 @@ responseDef = {
         {
             "cmd": "OperatingStatus",
             "format": "uint",
-            "mask": 0x00FFFFFF,
             "sensor": Sensor(
                 "OperatingStatus", Identifier.operating_status, mapper=SMATagList
             ),
-            "idx": 0,
+            "idx": 0xFF,
         }
     ],
     "0046C301": [
@@ -219,19 +218,17 @@ responseDef = {
     "0846A601": [
         {
             "cmd": "GridConection",
-            "mask": 0x00FFFFFF,
             "format": "uint",
             #                "sensor": , TODO
-            "idx": 0,
+            "idx": 0xFF,
         }
     ],
     "08214801": [
         {
             "cmd": "DeviceStatus",
             "format": "uint",
-            "mask": 0x00FFFFFF,
             "sensor": Sensor("inverter_status", Identifier.status, mapper=SMATagList),
-            "idx": 0,
+            "idx": 0xFF,
         }
     ],
     "40451F01": [
@@ -298,11 +295,10 @@ responseDef = {
         {
             "cmd": "GridRelayStatus",
             "format": "uint",
-            "mask": 0x00FFFFFF,
             "sensor": Sensor(
                 "GridRelayStatus", Identifier.grid_relay_status, mapper=SMATagList
             ),
-            "idx": 0,
+            "idx": 0xFF,
         }
     ],
     "00465701": [
@@ -331,19 +327,18 @@ responseDef = {
                 "inverter_class", Identifier.device_class, mapper=SMATagList
             ),
             "idx": 0xFF,
-            "overwrite": False
+            "overwrite": False,
         }
     ],
     "08822001": [
         {
             "cmd": "TypeLabel",
             "format": "uint",
-            #"mask": 0x00FFFFFF,
             "sensor": Sensor(
                 "inverter_type", Identifier.device_type, mapper=SMATagList
             ),
             "idx": 0xFF,
-            "overwrite": False
+            "overwrite": False,
         }
     ],
     "00262201": [
@@ -565,12 +560,16 @@ responseDef = {
             "idx": 4,
         }
     ],
-    "08412509": [{
-                "cmd": "BackupRelayStatus",
-                "format": "uint",
-                "sensor": Sensor("BackupRelayStatus", "TEMP_BackupRelayStatus", mapper=SMATagList),
-                "idx": 0
-    }],
+    "08412509": [
+        {
+            "cmd": "BackupRelayStatus",
+            "format": "uint",
+            "sensor": Sensor(
+                "BackupRelayStatus", "TEMP_BackupRelayStatus", mapper=SMATagList
+            ),
+            "idx": 0xFF,
+        }
+    ],
     # "00469109": [{ # Meter_Grid_FeedIn
     #             "cmd": "EM_2",
     #             "format": "uint",
@@ -583,60 +582,102 @@ responseDef = {
     #             "sensor": Sensor("EM_2", Identifier.battery_discharge_total, unit="kWh", factor=1000),
     #             "idx": 0
     # }],
-    "0046E809": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor": Sensor("active_power_feed_l1", Identifier.metering_active_power_feed_l1, unit="W"),
-                "idx": 0
-    }],
-    "0046E909": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor": Sensor(    "active_power_feed_l2", Identifier.metering_active_power_feed_l2, unit="W") ,
-                "idx": 0
-    }],
-    "0046EA09": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor": Sensor( "active_power_feed_l3", Identifier.metering_active_power_feed_l3, unit="W") ,
-                "idx": 0
-    }],
-    "0046EB09": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor": Sensor(    "active_power_draw_l1", Identifier.metering_active_power_draw_l1, unit="W"),
-                "idx": 0
-    }],
-    "0046EC09": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor":  Sensor(  "active_power_draw_l2", Identifier.metering_active_power_draw_l2, unit="W"),
-                "idx": 0
-    }],
-    "0046ED09": [{
-                "cmd": "EM_4",
-                "format": "uint",
-                "sensor":  Sensor(    "active_power_draw_l3", Identifier.metering_active_power_draw_l3, unit="W"),
-                "idx": 0
-    }],
-    "40574609": [{
-                "cmd": "SpotACCurrentBackup",
-                "format": "uint",
-                #"sensor": ,
-                "idx": 0
-    }],
-    "40574709": [{
-                "cmd": "SpotACCurrentBackup",
-                "format": "uint",
-                #"sensor": ,
-                "idx": 0
-    }],
-    "40574809": [{
-                "cmd": "SpotACCurrentBackup",
-                "format": "uint",
-                #"sensor": ,
-                "idx": 0
-    }],
+    "0046E809": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_feed_l1",
+                Identifier.metering_active_power_feed_l1,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "0046E909": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_feed_l2",
+                Identifier.metering_active_power_feed_l2,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "0046EA09": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_feed_l3",
+                Identifier.metering_active_power_feed_l3,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "0046EB09": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_draw_l1",
+                Identifier.metering_active_power_draw_l1,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "0046EC09": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_draw_l2",
+                Identifier.metering_active_power_draw_l2,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "0046ED09": [
+        {
+            "cmd": "EM_4",
+            "format": "uint",
+            "sensor": Sensor(
+                "active_power_draw_l3",
+                Identifier.metering_active_power_draw_l3,
+                unit="W",
+            ),
+            "idx": 0,
+        }
+    ],
+    "40574609": [
+        {
+            "cmd": "SpotACCurrentBackup",
+            "format": "uint",
+            # "sensor": ,
+            "idx": 0,
+        }
+    ],
+    "40574709": [
+        {
+            "cmd": "SpotACCurrentBackup",
+            "format": "uint",
+            # "sensor": ,
+            "idx": 0,
+        }
+    ],
+    "40574809": [
+        {
+            "cmd": "SpotACCurrentBackup",
+            "format": "uint",
+            # "sensor": ,
+            "idx": 0,
+        }
+    ],
     # "": [{
     #             "cmd": "",
     #             "format": "uint",
@@ -906,31 +947,35 @@ class speedwireHeader:
     tag42_tag0x02A0: dcs.U16
     group1: dcs.U32
     smanet2_length: dcs.U16
-    smanet2_tag0x10: dcs.U16 # renamte to id
+    smanet2_tagID: dcs.U16
     protokoll: dcs.U16
 
     def check6065(self):
-        """ Check for 6065 Type.  Size is not checked at this stage """
+        """Check for 6065 Type.  Size is not checked at this stage"""
         return (
             self.sma == b"SMA\x00"
             and self.tag42_length == 4
             and self.tag42_tag0x02A0 == 0x02A0
             and self.group1 == 1
-            and self.smanet2_tag0x10 == 0x10
+            and self.smanet2_tagID == 0x10
             and self.protokoll == 0x6065
         )
 
+    def __str__(self) -> str:
+        return f"speedwireHeader(sma:{self.sma} tag42_length:{self.tag42_length} tag42_tag0x02A0:{self.tag42_tag0x02A0:#04x} group1:{self.group1} smanet2_length:{self.smanet2_length} smanet2_tagID:{self.smanet2_tagID:#02x} protokoll:{self.protokoll:#04x})"
+
     def isDiscoveryResponse(self):
-        """  """
+        """ """
         return (
             self.sma == b"SMA\x00"
             and self.tag42_length == 4
             and self.tag42_tag0x02A0 == 0x02A0
             and self.group1 == 1
             and self.smanet2_length == 2
-            and self.smanet2_tag0x10 == 0
+            and self.smanet2_tagID == 0
             and self.protokoll == 1
         )
+
 
 @dcs.dataclass(dcs.BIG_ENDIAN)
 class speedwireData2Tag:
@@ -945,21 +990,19 @@ class speedwireHeader6065:
 
     # https://github.com/RalfOGit/libspeedwire
 
-    # dest_susyid: dcs.U16 #2
-    # dest_serial: dcs.U32 # 2+ 4 = 6
-    # dest_control: dcs.U16 # 2 4 + 2 = 8
-    # src_susyid: dcs.U16 # 2 4 2 2 = 10
-    # src_serial: dcs.U32 # 2 4 2 2 4 = 14
-    # src_control: dcs.U16 # 2 4 2 2 4 2 = 16
+    #        13 Bytes     0x26/38       00106065 09A0
+    # $cmd = $cmdheader . $pktlength . $esignature . $target_ID . "0000" . $myID . "0000" . "00000000" . $spkt_ID . $cmd_ID . "00000000";
 
-    # unknown1: dcs.U16 # 2
-    # susyid: dcs.U16  # 2 +2 = 4
-    # serial: dcs.U32  # 2 + 2 + 4 = 8
-    # unknown2: Annotated[bytes, 10] # 18
-
-    unknown2: Annotated[bytes, 18]  # 18
+    unknown09A0E0: Annotated[bytes, 2]
+    dest_susyid: dcs.U16
+    dest_serial: dcs.U32
+    dest_control: dcs.U16
+    src_susyid: dcs.U16
+    src_serial: dcs.U32
+    src_control: dcs.U16
     error: dcs.U16
     fragment: dcs.U16
+
     pktId: dcs.U16
     cmdid: dcs.U32
     firstRegister: dcs.U32
@@ -968,6 +1011,13 @@ class speedwireHeader6065:
     def isLoginResponse(self):
         return self.cmdid == 0xFFFD040D
 
+    def __str__(self) -> str:
+        return f"speedwireHeader6065(?:{self.unknown09A0E0.hex()} Src (ID,SNR,CNT): {self.src_susyid} {self.src_serial} {self.src_control} Dest (ID,SNR,CNT): {self.dest_susyid} {self.dest_serial} {self.dest_control}   error:{self.error} fragment:{self.fragment} pktId:{self.pktId} cmdid:{self.cmdid:#010x} firstRegister:{self.firstRegister:#010x} lastRegister:{self.lastRegister:#010x})"
+
+
+@dcs.dataclass(dcs.LITTLE_ENDIAN)
+class speedwireHeader6065x010:
+    pass
 
 
 # Originally based on https://github.com/Wired-Square/sma-query/blob/main/src/sma_query_sw/commands.py
@@ -980,7 +1030,6 @@ class SpeedwireFrame:
 
     # Login Timeout in seconds
     LOGIN_TIMEOUT = 900
-
 
     def get_encoded_pw(self, password, installer=False):
         """Encodes the password"""
@@ -1000,7 +1049,6 @@ class SpeedwireFrame:
                 encodedpw[index] = login_code
 
         return encodedpw
-
 
     _frame_sequence = 1
     _id = (ctypes.c_ubyte * 4).from_buffer(bytearray(b"SMA\x00"))

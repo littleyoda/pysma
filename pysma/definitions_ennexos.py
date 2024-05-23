@@ -2,9 +2,8 @@
 Definition for all enneoxOS senosrs 
 """
 
+from .const import Identifier, SMATagList
 from .sensor import Sensor
-from .const import Identifier
-from .const import SMATagList
 
 ennexosSensorProfiles = {
     "Sunny Tripower X ": [
@@ -155,7 +154,7 @@ ennexosSensorProfiles = {
             "Wl.SoftAcsConnStt", None, factor=1, unit=None
         ),  # Soft Access Point status
         Sensor("Setpoint.PlantControl.InOut.GO1", None, factor=1, unit=None),
-        Sensor("Inverter.WMax", Identifier.inverter_power_limit, factor=1, unit='W'),
+        Sensor("Inverter.WMax", Identifier.inverter_power_limit, factor=1, unit="W"),
     ],
     "^(SMA EV Charger |EVC22-3AC-10)": [
         Sensor("ChaSess.WhIn", None, factor=1, unit=None),  # charging_session_energy

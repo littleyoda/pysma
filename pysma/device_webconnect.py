@@ -9,10 +9,11 @@ import asyncio
 import copy
 import json
 import logging
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 import jmespath  # type: ignore
 from aiohttp import ClientSession, ClientTimeout, client_exceptions, hdrs
+
 from . import definitions_webconnect
 from .const_webconnect import (
     DEFAULT_LANG,
@@ -32,6 +33,7 @@ from .const_webconnect import (
     URL_VALUES,
     USERS,
 )
+from .device import Device
 from .exceptions import (
     SmaAuthenticationException,
     SmaConnectionException,
@@ -39,7 +41,6 @@ from .exceptions import (
 )
 from .helpers import version_int_to_string
 from .sensor import Sensors
-from .device import Device
 
 _LOGGER = logging.getLogger(__name__)
 

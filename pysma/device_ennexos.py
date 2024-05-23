@@ -8,24 +8,22 @@ import asyncio
 import copy
 import json
 import logging
-from typing import Any, Dict, Optional
 import re
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import Any, Dict, Optional
 
 from aiohttp import ClientSession, ClientTimeout, client_exceptions, hdrs
-from .const_webconnect import (
-    DEFAULT_TIMEOUT,
-)
+
+from .const import SMATagList
+from .const_webconnect import DEFAULT_TIMEOUT
+from .definitions_ennexos import ennexosSensorProfiles
+from .device import Device
 from .exceptions import (
     SmaAuthenticationException,
     SmaConnectionException,
     SmaReadException,
 )
-from .sensor import Sensors, Sensor_Range
-from .device import Device
-from .definitions_ennexos import ennexosSensorProfiles
-from .const import SMATagList
-
+from .sensor import Sensor_Range, Sensors
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,15 +164,20 @@ class SMAennexos(Device):
                 v = d["value"]
                 sensorRange = None
                 if "min" in d and "max" in d:
-                    sensorRange = Sensor_Range("min/max", [d["min"], d["max"]], d["editable"])
+                    sensorRange = Sensor_Range(
+                        "min/max", [d["min"], d["max"]], d["editable"]
+                    )
                 if "possibleValues" in d:
-                    sensorRange = Sensor_Range("selection", d["possibleValues"], d["editable"])
+                    sensorRange = Sensor_Range(
+                        "selection", d["possibleValues"], d["editable"]
+                    )
 
-                data[dname] = {"name": dname,
-                               "value": v,
-                               "origname": d["channelId"],
-                               "range": sensorRange
-                               }
+                data[dname] = {
+                    "name": dname,
+                    "value": v,
+                    "origname": d["channelId"],
+                    "range": sensorRange,
+                }
 
             elif "values" in d:
                 # Split Value-Arrays
@@ -242,7 +245,6 @@ class SMAennexos(Device):
         if not self._device_info:
             raise SmaReadException("device_info() not called!")
 
-        
         ret = await self._get_livedata() | await self._get_parameter()
         _LOGGER.debug("Found Sensors: %s", ret)
         profile = await self._get_sensor_profile()
@@ -307,7 +309,7 @@ class SMAennexos(Device):
         notfound = []
         data = None
         try:
-            data = await self._get_livedata()  | await self._get_parameter()
+            data = await self._get_livedata() | await self._get_parameter()
         except SmaAuthenticationException:
             # Relogin
             _LOGGER.debug("Re-login .. Starting new Session")
@@ -323,7 +325,7 @@ class SMAennexos(Device):
                         value = round(value / sen.factor, 4)
                     sen.value = value
                     if "range" in data[sen.key]:
-                       sen.range  = data[sen.key]["range"]
+                        sen.range = data[sen.key]["range"]
                     continue
                 notfound.append(f"{sen.name} [{sen.key}]")
 
@@ -364,7 +366,7 @@ class SMAennexos(Device):
             "measurements": self._last_measurements,
             "parameters": self._last_parameters,
             "device_info": self._device_info,
-            "notfound": self._last_notfound
+            "notfound": self._last_notfound,
         }
 
     async def detect(self, ip):
@@ -391,14 +393,13 @@ class SMAennexos(Device):
                 ret["exception"] = e
         return rets
 
-
     def set_options(self, options: Dict[str, Any]):
         self._options = options
 
-
     async def getTimestamp(self):
-        return f"{datetime.now(tz=UTC).isoformat(timespec='milliseconds').split('+')[0]}Z"
-
+        return (
+            f"{datetime.now(tz=UTC).isoformat(timespec='milliseconds').split('+')[0]}Z"
+        )
 
     # async def handleModulActions(self):
     #     if self._options.get("CMD", "") != "SET":

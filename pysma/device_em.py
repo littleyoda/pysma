@@ -6,23 +6,17 @@ see https://cdn.sma.de/fileadmin/content/www.developer.sma.de/docs/EMETER-Protok
 """
 
 import base64
+import copy
+import datetime
+import logging
 import socket
 import struct
-import copy
-import logging
 from typing import Any, Dict
-import datetime
 
-
-from .sensor import Sensor
 from .const import Identifier
-
-from .exceptions import (
-    SmaConnectionException,
-    SmaReadException,
-)
-from .sensor import Sensors
 from .device import Device
+from .exceptions import SmaConnectionException, SmaReadException
+from .sensor import Sensor, Sensors
 
 obis2sensor = [
     Sensor(

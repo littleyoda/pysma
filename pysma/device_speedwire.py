@@ -5,35 +5,36 @@ Improved with Information from https://github.com/mhop/fhem-mirror/blob/master/f
 Receiver classes completely reimplemented by little.yoda
 
 """
-import logging
-import time
-import sys
-import binascii
-import copy
-import collections
-import struct
+
 import asyncio
-from typing import Any, Dict, Optional, List, Annotated
+import binascii
+import collections
+import copy
+import logging
+import struct
+import sys
+import time
 from asyncio import DatagramProtocol, Future
+from typing import Annotated, Any, Dict, List, Optional
 
-from .helpers import version_int_to_string
-from .definitions_speedwire import commands, responseDef, speedwireHeader, speedwireHeader6065, SpeedwireFrame
-
-from .sensor import Sensors, Sensor
-from .device import Device
 from .const import SMATagList
-
+from .definitions_speedwire import (
+    SpeedwireFrame,
+    commands,
+    responseDef,
+    speedwireHeader,
+    speedwireHeader6065,
+)
+from .device import Device
 from .exceptions import (
+    SmaAuthenticationException,
     SmaConnectionException,
     SmaReadException,
-    SmaAuthenticationException,
 )
-
+from .helpers import version_int_to_string
+from .sensor import Sensor, Sensors
 
 _LOGGER = logging.getLogger(__name__)
-
-
-
 
 
 class SMAClientProtocol(DatagramProtocol):
@@ -48,7 +49,7 @@ class SMAClientProtocol(DatagramProtocol):
         "ids": set(),
         "sendcounter": 0,
         "resendcounter": 0,
-        "failedCounter": 0
+        "failedCounter": 0,
     }
 
     def __init__(self, password, on_connection_lost, options: Dict[str, any]):
@@ -69,8 +70,10 @@ class SMAClientProtocol(DatagramProtocol):
         self._sendCounter = 0
         self._commandTimeout = float(options.get("commandTimeout", 0.5))
         self._commandDelay = float(options.get("commandDelay", 0.0))
-        self._overallTimeout = float(options.get("overallTimeout", 5 + len(commands) * (self._commandDelay)))
-#        print("Timeouts", len(commands), self._commandTimeout, self._commandDelay, self._overallTimeout)
+        self._overallTimeout = float(
+            options.get("overallTimeout", 5 + len(commands) * (self._commandDelay))
+        )
+        #        print("Timeouts", len(commands), self._commandTimeout, self._commandDelay, self._overallTimeout)
         self.allCmds = []
         self.allCmds.extend(commands.keys())
         self.allCmds.remove("login")
@@ -85,14 +88,14 @@ class SMAClientProtocol(DatagramProtocol):
                 self.debug["sendcounter"] += 1
                 self._sendCounter += 1
 
-            await asyncio.wait_for(self._commandFuture, timeout = self._commandTimeout)
+            await asyncio.wait_for(self._commandFuture, timeout=self._commandTimeout)
             self.cmdidx += 1
             self._resendcounter = 0
         except asyncio.TimeoutError:
             _LOGGER.debug(f"Timeout in command. Resendcounter: {self._resendcounter}")
             self._resendcounter += 1
             self.debug["resendcounter"] += 1
-            if (self._resendcounter > 2):
+            if self._resendcounter > 2:
                 # Giving up. Next Command
                 _LOGGER.debug(f"Timeout in command")
                 self.cmdidx += 1
@@ -100,7 +103,6 @@ class SMAClientProtocol(DatagramProtocol):
                 self._failedCounter += 1
                 self.debug["failedCounter"] += 1
         await self._send_next_command()
-
 
     def _confirm_repsonse(self, code=-1):
         if self._commandFuture.done():
@@ -236,7 +238,6 @@ class SMAClientProtocol(DatagramProtocol):
                     v = v & handler["mask"]
             values.append(v)
         return values
-   
 
     def fixID(self, orig):
         if orig in responseDef:
@@ -277,8 +278,8 @@ class SMAClientProtocol(DatagramProtocol):
                 continue
             v = None
             if handler["idx"] == 0xFF:
-                """ For some responses, a list is returned and the correct value 
-                    wihtin this list is marked by the top 8 bits.  """
+                """For some responses, a list is returned and the correct value
+                wihtin this list is marked by the top 8 bits."""
                 for origValue in values:
                     if origValue is not None and (origValue & 0xFF000000) > 0:
                         v = origValue & 0x00FFFFFF
@@ -299,7 +300,9 @@ class SMAClientProtocol(DatagramProtocol):
                     f"Special Handler for {c} at register idx {register_idx}: {values}"
                 )
                 sensor = sensor[register_idx]
-            _LOGGER.debug(f"ID: {self._id} Values {sensor.name}/{sensor.key}: {v} {values}")
+            _LOGGER.debug(
+                f"ID: {self._id} Values {sensor.name}/{sensor.key}: {v} {values}"
+            )
             self.handle_newvalue(sensor, v, handler.get("overwrite", True))
 
     # Unfortunately, there is no known method of determining the size of the registers
@@ -323,7 +326,12 @@ class SMAClientProtocol(DatagramProtocol):
             delta = time.time() - self._lastSend
             self._lastSend = None
         self.debug["msg"].append(
-            ["RECV", len(data), binascii.hexlify(data).upper().decode("utf-8"), round(delta, 2)]
+            [
+                "RECV",
+                len(data),
+                binascii.hexlify(data).upper().decode("utf-8"),
+                round(delta, 2),
+            ]
         )
 
         # Check if message is a 6065 protocol
@@ -344,7 +352,6 @@ class SMAClientProtocol(DatagramProtocol):
             self.handle_login(msg6065)
             self._confirm_repsonse()
             return
-
 
         # Filter out non matching responses
         (cnt_registers, size_registers) = self.calc_register(data, msg6065)
@@ -372,13 +379,11 @@ class SMAClientProtocol(DatagramProtocol):
 class SMAspeedwireINV(Device):
     """Adapter between Device-Class and SMAClientProtocol"""
 
-    _options: Dict[str,Any] = {}
+    _options: Dict[str, Any] = {}
     _transport = None
     _protocol = None
     _deviceinfo: Dict[str, Any] = {}
-    _debug: Dict[str, Any] = {
-        "overalltimeout": 0
-    }
+    _debug: Dict[str, Any] = {"overalltimeout": 0}
 
     def __init__(self, host: str, group: str, password: Optional[str]):
         self._host = host
@@ -431,7 +436,9 @@ class SMAspeedwireINV(Device):
         loop = asyncio.get_running_loop()
         on_connection_lost = loop.create_future()
         self._transport, self._protocol = await loop.create_datagram_endpoint(
-            lambda: SMAClientProtocol(self._password, on_connection_lost, self._options),
+            lambda: SMAClientProtocol(
+                self._password, on_connection_lost, self._options
+            ),
             remote_addr=(self._host, 9522),
         )
 
@@ -441,14 +448,14 @@ class SMAspeedwireINV(Device):
 
         # Test with device_info if the ip and user/pwd are correct
         await self.device_info()
-        if (self._protocol._failedCounter >= self._protocol._sendCounter):
-            raise SmaConnectionException("No connection to device: %s:9522",self._host)
+        if self._protocol._failedCounter >= self._protocol._sendCounter:
+            raise SmaConnectionException("No connection to device: %s:9522", self._host)
 
     async def device_info(self) -> dict:
         fut = asyncio.get_running_loop().create_future()
         await self._protocol.start_query(["TypeLabel", "Firmware"], fut, self._group)
         try:
-            await asyncio.wait_for(fut, timeout = self._protocol._overallTimeout)
+            await asyncio.wait_for(fut, timeout=self._protocol._overallTimeout)
         except TimeoutError:
             self._debug["overalltimeout"] += 1
             _LOGGER.warning("Timeout in device_info")
@@ -482,7 +489,7 @@ class SMAspeedwireINV(Device):
         device_sensors = Sensors()
         try:
             await self._protocol.start_query(c, fut, self._group)
-            await asyncio.wait_for(fut, timeout = self._protocol._overallTimeout)
+            await asyncio.wait_for(fut, timeout=self._protocol._overallTimeout)
             for s in self._protocol.sensors.values():
                 device_sensors.add(s)
         except asyncio.TimeoutError as e:
@@ -490,13 +497,12 @@ class SMAspeedwireINV(Device):
             raise e
         return device_sensors
 
-
     async def read(self, sensors: Sensors) -> bool:
         fut = asyncio.get_running_loop().create_future()
         c = self._protocol.allCmds
         await self._protocol.start_query(c, fut, self._group)
         try:
-            await asyncio.wait_for(fut, timeout= self._protocol._overallTimeout)
+            await asyncio.wait_for(fut, timeout=self._protocol._overallTimeout)
             self._update_sensors(sensors, self._protocol.sensors)
             return True
         except asyncio.TimeoutError as e:
@@ -553,6 +559,6 @@ class SMAspeedwireINV(Device):
             ret[0]["status"] = "failed"
             ret[0]["exception"] = e
         return ret
-    
+
     def set_options(self, options: Dict[str, Any]):
         self._options = options

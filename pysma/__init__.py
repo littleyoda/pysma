@@ -5,15 +5,17 @@ See: http://www.sma.de/en/products/monitoring-control/webconnect.html
 Source: http://www.github.com/kellerza/pysma
 """
 
+import asyncio
 import logging
 from typing import Optional
-import asyncio
+
 from aiohttp import ClientSession
-from .device_webconnect import SMAwebconnect
+
+from .device import Device
+from .device_em import SMAspeedwireEM
 from .device_ennexos import SMAennexos
 from .device_speedwire import SMAspeedwireINV
-from .device_em import SMAspeedwireEM
-from .device import Device
+from .device_webconnect import SMAwebconnect
 from .discovery import Discovery
 
 _LOGGER = logging.getLogger(__name__)

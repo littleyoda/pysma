@@ -1,5 +1,6 @@
 """Sensor definitions for SMA WebConnect library for Python."""
 
+from .const import Identifier
 from .const_webconnect import (
     DEVICE_INFO,
     ENERGY_METER_VIA_INVERTER,
@@ -8,7 +9,6 @@ from .const_webconnect import (
     OPTIMIZERS_VIA_INVERTER,
 )
 from .sensor import Sensor
-from .const import Identifier
 
 # Status - Operation
 #: Status of the device

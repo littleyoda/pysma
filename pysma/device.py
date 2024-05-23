@@ -4,7 +4,8 @@ abstract base class on which all device implementations are based
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-from .sensor import Sensors
+
+from .sensor import Sensor, Sensors
 
 
 class Device(ABC):
@@ -53,4 +54,7 @@ class Device(ABC):
         pass
 
     async def handleModulActions(self):
+        pass
+
+    def set_parameter(self, sensor: Sensor | str, value: int):
         pass

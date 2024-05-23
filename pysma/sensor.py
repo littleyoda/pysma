@@ -2,18 +2,19 @@
 
 import copy
 import logging
+from dataclasses import dataclass
 from typing import Any, Iterator, List, Optional, Union
 
 import attr
 import jmespath  # type: ignore
-from dataclasses import dataclass
 
 from .const_webconnect import JMESPATH_VAL, JMESPATH_VAL_IDX, JMESPATH_VAL_STR
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @dataclass
-class Sensor_Range():
+class Sensor_Range:
     typ: str
     values: list[int]
     editable: bool
@@ -37,7 +38,7 @@ class Sensor:
     l10n_translate: bool = attr.ib(default=False)
     value: Any = attr.ib(default=None, init=False)
     key_idx: int = attr.ib(default=0, repr=False, init=False)
-    mapper: dict[int, str] = attr.ib(default=None,repr=False)
+    mapper: dict[int, str] = attr.ib(default=None, repr=False)
     mapped_value: Any = attr.ib(default=None, init=False)
     range: Sensor_Range = attr.ib(default=None, init=False)
 
@@ -225,4 +226,3 @@ class Sensors:
 
     def __str__(self):
         return str(self.__s)
-    

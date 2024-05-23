@@ -1,12 +1,14 @@
 """Helper functions for the pysma library."""
-import dataclasses, json
+
+import dataclasses
+import json
+
 
 class BetterJSONEncoder(json.JSONEncoder):
-        def default(self, o):
-            if dataclasses.is_dataclass(o):
-                return dataclasses.asdict(o)
-            return super().default(o)
-
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
 
 
 def version_int_to_string(version_integer: int) -> str:
@@ -27,5 +29,3 @@ def version_int_to_string(version_integer: int) -> str:
         appendixes[version_bytes[3]] if 0 <= version_bytes[3] < len(appendixes) else ""
     )
     return f"{version_bytes[0]:x}.{version_bytes[1]:x}.{version_bytes[2]}.{version_appendix}"
-
-
