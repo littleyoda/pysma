@@ -1,0 +1,2 @@
+aiomqtt==2.1.0
+pysma_plus
