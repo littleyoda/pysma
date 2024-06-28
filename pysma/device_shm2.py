@@ -4,8 +4,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from pymodbus import ModbusException
 from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ModbusResponse
 
 from .const import Identifier, SMATagList
