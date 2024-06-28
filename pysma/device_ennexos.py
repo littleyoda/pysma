@@ -98,7 +98,7 @@ class SMAennexos(Device):
                 if res.status == 200:
                     res = await res.json()
                     return res
-                elif res.status == 401:
+                elif res.status == 401 or res.status == 400:
                     raise SmaAuthenticationException("Token failed!")
                 else:
                     _LOGGER.warning("HTTP-Error %d for %s", res.status, url)
