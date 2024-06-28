@@ -9,7 +9,7 @@ from datetime import datetime
 import untangle  # type: ignore
 from aiohttp import web
 
-from pysma.semp.const import (
+from .const import (
     debugHTML,
     descriptionXML,
     deviceInfoXML,
@@ -19,7 +19,7 @@ from pysma.semp.const import (
     sempXMLstart,
     timeFrameXml,
 )
-from pysma.semp.device import sempDevice
+from .device import sempDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class historyData:
     time: str
+    timemsec: float
     typ: str
     remote: str
     deviceData: dict[str, sempDevice]
@@ -38,17 +39,19 @@ class SEMPhttpServer:
     devices: dict[str, sempDevice] = {}
     history: collections.deque[historyData] = collections.deque(maxlen=180)
 
-    def __init__(self, addr, port, uuid):
+    def __init__(self, addr, port, uuid, timezone):
         """Initialize the instance of the view."""
         print("Init HTTP-Server")
         self.port = port
         self.addr = addr
+        self.lastip = addr.split(".")[-1]
         self.uuid = uuid
+        self.timezone = timezone
 
     async def _get_handler(self, request):
 
         msg = descriptionXML.format(
-            friendly_name="SEMP-to-Home-Assistant-Gateway",
+            friendly_name=self.lastip + " HA-GW",
             manufacturer="Home Assistant",
             manufacturer_url="https://www.home-assistant.io/",
             model_description="SEMP-to-Home-Assistant-Gateway",
@@ -71,7 +74,6 @@ class SEMPhttpServer:
                     if devId not in devicesName:
                         devicesName[devId] = dataTuple.deviceData[devId]
         devices = list(devices)
-        #        list.insert(0, "")
         out = debugHTML
         out += "<h2>Last SEMP-Requests from SHM</h2>"
         if len(self.history) == 0:
@@ -123,8 +125,6 @@ class SEMPhttpServer:
         return str(b).lower()
 
     async def postSemp(self, request):
-        print(type(request))
-        print(request)
         buffer = b""
         async for data, end_of_http_chunk in request.content.iter_chunks():
             buffer += data
@@ -132,7 +132,10 @@ class SEMPhttpServer:
             #     print(buffer)
         #        try:
         print(buffer)
-        #  '<EM2Device xmlns="http://www.sma.de/communication/schema/SEMP/v1"><DeviceControl><DeviceId>F-00000001-000000000002-00</DeviceId><On>true</On></DeviceControl></EM2Device>
+        #  '<EM2Device xmlns="http://www.sma.de/communication/schema/SEMP/v1"><DeviceControl>
+        # <DeviceId>F-00000001-000000000002-00</DeviceId>
+        # <On>true</On>
+        # </DeviceControl></EM2Device>
         obj = untangle.parse(buffer.decode("utf-8"))
         assert (
             obj.children[0]["xmlns"] == "http://www.sma.de/communication/schema/SEMP/v1"
@@ -150,7 +153,12 @@ class SEMPhttpServer:
         data[devId]["devid"] = devId
         data[devId]["status"] = onoffStr
         h = historyData(
-            datetime.now().isoformat()[0:19], "COMMAND", str(request.remote), None, data
+            datetime.now().isoformat()[0:19],
+            datetime.now().timestamp(),
+            "COMMAND",
+            str(request.remote),
+            None,
+            data,
         )
         self.history.append(h)
 
@@ -159,9 +167,17 @@ class SEMPhttpServer:
         print(devId, onoffBool)
         return web.Response(text="", content_type="text/xml")
 
+    def Now(self) -> datetime:
+        if self.timezone:
+            return datetime.now(tz=self.timezone)
+        else:
+            return datetime.now()
+
     async def getSemp(self, request):
+        # TODO xsd verification
         # history: collections.deque[Tuple[str, dict[str, device]]] = collections.deque(maxlen=180)
-        now = datetime.now()
+        now = self.Now()
+
         msg = sempXMLstart
         data = {}
         for dev in self.devices.values():
@@ -173,12 +189,18 @@ class SEMPhttpServer:
                 deviceType=dev.deviceType,
                 deviceSerial=dev.deviceSerial,
                 deviceVendor=html.escape(dev.deviceVendor),
-                maxPowerConsumption=dev.deviceMaxConsumption,
+                maxPowerConsumption=int(dev.deviceMaxConsumption),
                 interruptionsAllowed=self.bool2str(dev.interruptionsAllowed),
                 optionalEnergy=self.bool2str(dev.optionalEnergy),
             )
+        now = self.Now()
         h = historyData(
-            datetime.now().isoformat()[0:19], "STATUS", str(request.remote), data, None
+            now.isoformat()[0:19],
+            now.timestamp(),
+            "STATUS",
+            str(request.remote),
+            data,
+            None,
         )
         self.history.append(h)
         timeframeExists = False
@@ -214,8 +236,9 @@ class SEMPhttpServer:
     async def start(self):
         async def middleware_factory(app, handler):
             async def middleware_handler(request):
+                print(request)
                 print(
-                    f"Request: {request.rel_url} {request.remote} {request.raw_headers}"
+                    f"Request: {request.method} {request.rel_url} {request.remote} {request.raw_headers}"
                 )
                 return await handler(request)
 

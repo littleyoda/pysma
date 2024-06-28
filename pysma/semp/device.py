@@ -41,7 +41,7 @@ class sempDevice:
             "DishWasher",
             "Dryer",
             #                "ElectricVehicle",
-            "EVCharger",
+            #  "EVCharger",
             "Freezer",
             "Fridge",
             "Heater",
@@ -96,6 +96,9 @@ class sempDevice:
 
     # <MinOnTime>1200</MinOnTime>
     # <MinOffTime>600</MinOffTime>
+
+    def setTimeframes(self, timeframes: list[sempTimeframe]):
+        self.timeframes = timeframes
 
     def addTimeframe(self, timeframe: sempTimeframe):
         self.timeframes.append(timeframe)
