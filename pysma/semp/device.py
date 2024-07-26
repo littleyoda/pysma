@@ -1,4 +1,8 @@
+import logging
+import re
 from datetime import datetime, timedelta
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class sempTimeframe:
@@ -64,11 +68,17 @@ class sempDevice:
         minOnTime: timedelta | None = None,
         minOffTime: timedelta | None = None,
     ):
-        assert (
+        assert re.match(
+            "F-[0-9]{8}-[0-9]{12}-00", deviceId
+        ), "DeviceID does not meet the requirements "
+        if not (
             len(deviceId) == 26
             and deviceId.startswith("F-11223344-")
             and deviceId.endswith("-00")
-        )
+        ):
+            _LOGGER.debug(
+                f"DeviceID {deviceId} does not meet the recommendations: F-11223344-XXXXXXXXXXXX-00"
+            )
         assert deviceType in self.possibleDeviceType()
         self.deviceId = deviceId
         self.deviceName = deviceName
