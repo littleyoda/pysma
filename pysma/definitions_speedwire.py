@@ -1036,7 +1036,7 @@ class speedwireHeader6069:
     src_susyid: dcs.U16
     src_serial: dcs.U32
 
-    timestamp: dcs.U32
+    timestamp: dcs.U32  # the 4 least significant bytes from a Unix Timestamp (msec since 1970) => int(time.time * 1000) & 0xFFFFFFFF)
 
 
 @dcs.dataclass(dcs.LITTLE_ENDIAN)

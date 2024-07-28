@@ -102,6 +102,8 @@ class SMAennexos(Device):
                     res = await res.json()
                     return res
                 elif res.status == 401 or res.status == 400:
+                    _LOGGER.error("Error " + str(res.status))
+                    _LOGGER.error(res.json())
                     raise SmaAuthenticationException("Token failed!")
                 else:
                     _LOGGER.warning("HTTP-Error %d for %s", res.status, url)
@@ -111,7 +113,9 @@ class SMAennexos(Device):
         except (client_exceptions.ContentTypeError, json.decoder.JSONDecodeError):
             _LOGGER.error("Request to %s did not return a valid json.", url)
         except client_exceptions.ServerDisconnectedError as exc:
-            _LOGGER.error(f"Timeout while requesting {url} {exc}")
+            _LOGGER.error(
+                f"Timeout while requesting {url} {exc}. (Probably wrong ip, wrong hostname or wrong setting for http/https)"
+            )
             raise SmaConnectionException(
                 f"Server at {self._url} disconnected."
             ) from exc
