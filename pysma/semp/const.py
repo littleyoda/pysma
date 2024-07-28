@@ -188,4 +188,5 @@ timeFrameXml = """<Timeframe>
 @dataclass
 class callbackAction:
     deviceid: str
+    shortdeviceid: str
     requestedStatus: bool

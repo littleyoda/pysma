@@ -122,13 +122,15 @@ class SEMPhttpServer:
         self.history.append(h)
         assert onoff in ["true", "false"]
         onoffBool = onoff == "true"
-        print(devId, onoffBool)
-        if devId.startswith("F-11223344-") and devId.endswith("-00"):
-            devId = devId[2 + 8 + 1 : -3]
-        else:
-            _LOGGER.warning(f"Unknown device id received {devId}")
+        # print(devId, onoffBool)
+        # if devId.startswith("F-11223344-") and devId.endswith("-00"):
+        #     devId = devId[2 + 8 + 1 : -3]
+        # else:
+        #     _LOGGER.warning(f"Unknown device id received {devId}")
         if self.callback:
-            await self.callback(callbackAction(devId, onoffBool))
+            shortDevId = devId[2 + 8 + 1 : -3]
+            _LOGGER.info(f"Command received {onoffBool} {devId} {shortDevId}")
+            await self.callback(callbackAction(devId, shortDevId, onoffBool))
         return web.Response(text="", content_type="text/xml")
 
     def Now(self) -> datetime:
@@ -180,6 +182,7 @@ class SEMPhttpServer:
             if len(dev.timeframes) > 0:
                 timeframeExists = True
 
+        # Create PlanningRequest if at least one timeframe exists for all devices
         if timeframeExists:
             msg += "<PlanningRequest>"
             for dev in self.devices.values():
