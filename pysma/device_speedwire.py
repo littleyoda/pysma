@@ -15,6 +15,7 @@ import struct
 import time
 from asyncio import DatagramProtocol, Future
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
 
 from .const import SMATagList
 from .definitions_speedwire import (
@@ -35,6 +36,7 @@ from .sensor import Sensor, Sensors
 
 _LOGGER = logging.getLogger(__name__)
 
+NO_HANDLER_FOR_MIN_TIMEDELTA = timedelta(hours=24) # How often to report a "known unknown" response
 
 class SMAClientProtocol(DatagramProtocol):
     """Basic Class for communication"""
@@ -49,6 +51,8 @@ class SMAClientProtocol(DatagramProtocol):
         "sendcounter": 0,
         "resendcounter": 0,
         "failedCounter": 0,
+        "warned": {}, # dictionary of "No handler for" adresses with timestamp of last logged message, 
+        # so it can be repeated daily (instead of per poll)
     }
 
     def __init__(
@@ -307,8 +311,18 @@ class SMAClientProtocol(DatagramProtocol):
                 v = struct.unpack("<l", subdata[idx : idx + 4])[0]
                 values.append(v)
                 valuesPos.append(f"{idx + 54}")
+            # check if the value 'c' was already logged within the last 24 hrs (TIMEDELTA def above)
+
+
+            if ((ts := self.debug.get("warned",{}).get(c)) 
+                and ts>(datetime.now()-NO_HANDLER_FOR_MIN_TIMEDELTA)):
+                # do not warn again
+                # it also already known to "unfinished" set
+                return
+
             _LOGGER.warning(f"No Handler for {c}: {values} @ {valuesPos}")
             self.debug["unfinished"].add(f"{c}")
+            self.debug["warned"][c]=datetime.now() # add to known unknowns that have been warned
             return
 
         # Handle known repsones
