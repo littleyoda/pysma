@@ -137,6 +137,8 @@ class Identifier:
     status: str = "status"
     active_power_limitation: str = "active_power_limitation"
     power_limit_via_io: str = "power_limit_via_io"
+    charging_station_total_absorbed: str = "charging_station_total_absorbed"
+    charging_station_power_absorbed: str = "charging_station_power_absorbed"
 
     operating_mode_plant_control: str = "operating_mode_plant_control"
     power_setpoint_plant_control: str = "power_setpoint_plant_control"
