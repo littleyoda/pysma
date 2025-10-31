@@ -28,7 +28,7 @@ setup(
         "dataclasses-struct>0.8,<1.0",
         "untangle>=1.2.1",
         "xmlschema>=3.3.0",
-        "pymodbus>=3.9.0, <4",
+        "pymodbus>=3.11.0,<3.12",
     ],
     zip_safe=True,
     include_package_data=False,
