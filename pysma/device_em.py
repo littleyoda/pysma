@@ -15,7 +15,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from .const import SMATagList
 from .definitions_em import obis2sensor
 from .definitions_speedwire import speedwireHeader, speedwireHeader6069
 from .device import Device, DeviceInformation, DiscoveryInformation
@@ -302,7 +301,7 @@ class SMAspeedwireEM(Device):
         data: dict[str, Any] = {}
         data["protocolID"] = sw.protokoll
         data["susyid"] = sw6069.src_susyid
-        data["device"] = SMATagList.get(data["susyid"], "unknown")
+        data["device"] = "SHM2/EM"
         data["serial"] = sw6069.src_serial
         data["ip"] = addr[0] + ":" + str(addr[1])
         length = sw.smanet2_length + 16
