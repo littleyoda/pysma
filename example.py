@@ -300,6 +300,16 @@ async def main() -> None:
     parser_b.add_argument("url", type=str, help="Url or IP-Address")
     parser_b.set_defaults(accessmethod="speedwireinv")
 
+    parser_sw2 = subparsers.add_parser(
+        "speedwirenew", help="Devices with Speedwire interface (unencrypted only)"
+    )
+    parser_sw2.add_argument(
+        "user", choices=["user", "installer"], help="Login username"
+    )
+    parser_sw2.add_argument("password", help="Login password")
+    parser_sw2.add_argument("url", type=str, help="Url or IP-Address")
+    parser_sw2.set_defaults(accessmethod="speedwireinvV2")
+
     parser_c = subparsers.add_parser("ennexos", help="EnnexOs based Devices")
     parser_c.set_defaults(accessmethod="ennexos")
     parser_c.add_argument("user", help="Username")
@@ -342,7 +352,7 @@ async def main() -> None:
     # parser_g.set_defaults(password="")
     # parser_g.set_defaults(url="")
 
-    for p in [parser_a, parser_b, parser_c, parser_d, parser_h]:
+    for p in [parser_a, parser_b, parser_c, parser_d, parser_sw2, parser_h]:
         p.add_argument(
             "--set",
             metavar="KEY=VALUE",

@@ -723,7 +723,18 @@ commands: Dict[str, Dict[str, Any]] = {
         "first": 0x0030CB00,
         "last": 0x0030CB00,
     },
-    "logoff": {"command": 0xFFFD010E, "response": 0xFFFD010F},
+    "login2": {
+        "command": 0xFFFD040C,
+        # "response": 0xFFFD040D,
+        "first": 0x00000007,
+        "last": 0x00000384,
+    },
+    "logoff": {
+        "command": 0xFFFD010E,
+        "first": 0xFFFFFFFF,
+        "last": 0x00000000,
+        "response": 0xFFFD010F,
+    },
     "TypeLabel": {
         "command": 0x58000200,
         "first": 0x00821E00,

@@ -92,6 +92,7 @@ class SMAClientProtocol(DatagramProtocol):
         self.allCmds: list[str] = []
         self.allCmds.extend(commands.keys())
         self.allCmds.remove("login")
+        self.allCmds.remove("login2")
         self.allCmds.remove("logoff")
 
     def connection_made(self, transport: Any) -> None:
