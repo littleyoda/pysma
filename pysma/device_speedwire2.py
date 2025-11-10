@@ -58,6 +58,8 @@ sensorList = [
     "SpotGridFrequency",
     "OperationTime",
     "InverterTemperature",
+    "OperatingStatus",
+    "DeviceStatus",
 ]
 
 
