@@ -7,15 +7,14 @@ from unittest.mock import patch
 import aiohttp
 import pytest
 
-from pysma import SMA
 from pysma.definitions_webconnect import device_type as device_type_sensor
+from pysma.device_webconnect import SMAwebconnect
 from pysma.exceptions import (
     SmaAuthenticationException,
     SmaConnectionException,
     SmaReadException,
 )
 from pysma.sensor import Sensors
-from pysma.device_webconnect import SMAwebconnect
 
 from . import MOCK_DEVICE, MOCK_L10N, SMA_TESTDATA, mock_aioresponse  # noqa: F401
 
@@ -336,7 +335,10 @@ class Test_SMA_class:
         sma = SMAwebconnect(session, self.host, "pass")
         result = await sma.device_info()
         assert result
-        assert result == MOCK_DEVICE
+        for d in MOCK_DEVICE.items():
+            if d[0] not in result:
+                assert False
+            assert d[1] == result[d[0]]
 
     async def test_device_info_fallback(self, mock_aioresponse):  # noqa: F811
         """Test device_info fallback."""

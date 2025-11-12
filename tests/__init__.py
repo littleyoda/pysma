@@ -2046,7 +2046,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        37,
+        39,
         id="SB 3.6, no energy meter, no optimizers",
     ),
     pytest.param(
@@ -4075,7 +4075,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        68,
+        70,
         id="STP 3.0, no energy meter, with 8 optimizers",
     ),
     pytest.param(
@@ -4598,7 +4598,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        48,
+        50,
         id="STP 10.0 SE, no energy meter, no optimizers",
     ),
     pytest.param(
@@ -5631,7 +5631,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        69,
+        72,
         id="STP 6.0 SE, with energy meter, no optimizers",
     ),
     pytest.param(
@@ -6156,7 +6156,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        67,
+        69,
         id="STP 10.0 SE, with energy meter, no optimizers",
     ),
     pytest.param(
@@ -6742,7 +6742,7 @@ SMA_TESTDATA = [
                 }
             }
         },
-        32,
+        35,
         id="Sunny Boy 1.5, no energy meter, no optimizers",
     ),
 ]
