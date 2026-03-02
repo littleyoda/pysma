@@ -189,6 +189,8 @@ class SMAClientProtocol(DatagramProtocol):
             return
         if self.cmdidx >= len(self.cmds):
             await self.logoff()
+            if not self.future:
+                return
             f = self.future
             self.future = None
             await asyncio.sleep(0.2)  # Wait for delayed responses
@@ -207,18 +209,23 @@ class SMAClientProtocol(DatagramProtocol):
             if self._resendcounter == 0:
                 await asyncio.sleep(self._commandDelay)
             # Send the next command
-            self.debug["msg"].append(["SEND", self.cmds[self.cmdidx]])
-            _LOGGER.debug("Sending " + self.cmds[self.cmdidx])
-            self._lastSend = time.time()
-            if (self.cmds[self.cmdidx]) == "login":
-                groupidx = ["user", "installer"].index(self._group) == 1
-                self._send_command(
-                    self.speedwire.getLoginFrame(self.password, 0x23021923, groupidx)
-                )
-            else:
-                self._send_command(
-                    self.speedwire.getQueryFrame(0x23021923, self.cmds[self.cmdidx])
-                )
+            try:
+                self.debug["msg"].append(["SEND", self.cmds[self.cmdidx]])
+                _LOGGER.debug("Sending " + self.cmds[self.cmdidx])
+                self._lastSend = time.time()
+                if (self.cmds[self.cmdidx]) == "login":
+                    groupidx = ["user", "installer"].index(self._group) == 1
+                    self._send_command(
+                        self.speedwire.getLoginFrame(
+                            self.password, 0x23021923, groupidx
+                        )
+                    )
+                else:
+                    self._send_command(
+                        self.speedwire.getQueryFrame(0x23021923, self.cmds[self.cmdidx])
+                    )
+            except IndexError:
+                pass
 
     def _getFormat(self, handler: dict) -> tuple:
         """Return the necessary information for extracting the information"""
