@@ -19,3 +19,7 @@ class SmaWriteException(SmaException):
 
 class SmaConnectionException(SmaException):
     """An error occurred in the connection with the device."""
+
+
+class SmaMulticastReceiveException(SmaException):
+    """An error occurred in the connection with the device."""

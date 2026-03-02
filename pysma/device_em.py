@@ -18,7 +18,11 @@ from typing import Any, Dict, List
 from .definitions_em import obis2sensor
 from .definitions_speedwire import speedwireHeader, speedwireHeader6069
 from .device import Device, DeviceInformation, DiscoveryInformation
-from .exceptions import SmaConnectionException, SmaReadException
+from .exceptions import (
+    SmaConnectionException,
+    SmaMulticastReceiveException,
+    SmaReadException,
+)
 from .sensor import Sensor, Sensors
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,7 +81,7 @@ class SMAspeedwireEM(Device):
         try:
             data = await self._get_next_values()
         except TimeoutError as e:
-            raise SmaConnectionException("No speedwire packet received!") from e
+            raise SmaMulticastReceiveException("No speedwire packet received!") from e
         if not data:
             raise SmaReadException("No usable data received!")
         return True
