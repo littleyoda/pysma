@@ -625,6 +625,8 @@ SMATagList: Dict[int, str] = {
     9492: "SUNNY TRIPOWER X 12",
     9483: "EVC7.4-1AC-10",
     9484: "EVC22-3AC-10",
+    19035: "Sunny Tripower Storage 50",
+    19036: "Sunny Tripower Storage 30",
     19048: "STP5.0SE (SUNNY TRIPOWER 5.0 SE)",
     19049: "STP6.0SE (SUNNY TRIPOWER 6.0 SE)",
     19050: "STP8.0SE (SUNNY TRIPOWER 8.0 SE)",
