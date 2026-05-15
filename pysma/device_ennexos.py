@@ -405,7 +405,11 @@ class SMAennexos(Device):
                     if sen.mapper:
                         sen.mapped_value = sen.mapper.get(value, str(value))
                     if sen.factor and sen.factor != 1:
-                        value = round(value / sen.factor, 4)
+                        try:
+                            value = round(value / sen.factor, 4)
+                        except TypeError:
+                            _LOGGER.error(f"TypeError Key:{sen.key} Value: {value}")
+                            continue
                     sen.value = value
                     if "range" in data[sen.key]:
                         sen.range = data[sen.key]["range"]
