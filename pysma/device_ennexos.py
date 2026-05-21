@@ -408,8 +408,7 @@ class SMAennexos(Device):
                         try:
                             value = round(value / sen.factor, 4)
                         except TypeError:
-                            _LOGGER.error(f"TypeError Key:{sen.key} Value: {value}")
-                            continue
+                            pass
                     sen.value = value
                     if "range" in data[sen.key]:
                         sen.range = data[sen.key]["range"]
