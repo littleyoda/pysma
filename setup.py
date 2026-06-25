@@ -4,7 +4,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-VERSION = "0.4.2"
+VERSION = "0.4.3"
 
 URL = "https://github.com/littleyoda/pysma"
 
@@ -28,7 +28,7 @@ setup(
         "dataclasses-struct>0.8,<1.0",
         "untangle>=1.2.1",
         "xmlschema>=3.3.0",
-        "pymodbus>=3.11.0,<3.12",
+        "pymodbus>=3.12.0",
     ],
     zip_safe=True,
     include_package_data=False,
