@@ -554,6 +554,21 @@ class SMAspeedwireINVV2(Device):
             sensors.add(s)
         return sensors
 
+    def current_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O.
+
+        Unlike :meth:`get_sensors`, this performs no network poll: it reflects
+        whatever the most recent ``update()`` populated. It lets a consumer
+        (e.g. the Home Assistant integration) pick up channels that only appear
+        once the inverter is awake -- e.g. instantaneous power/voltage/current
+        at sunrise after a night-time start -- without re-polling the device.
+        Returns an empty list if no session has been established yet.
+        """
+        session = self._session
+        if session is None:
+            return []
+        return list(session.sensors.values())
+
     async def device_info(self) -> dict:
         """Expose the cached DeviceInformation structure as a dict."""
         await self.new_session()

@@ -58,3 +58,25 @@ class Test_speedwire2_discovery:
 
         assert "grid_power" in first.sensors
         assert "grid_power" not in second.sensors
+
+
+class Test_speedwire2_current_sensors:
+    """The no-poll accessor used by consumers for runtime re-discovery."""
+
+    def test_empty_without_session(self) -> None:
+        from pysma.device_speedwire2 import SMAspeedwireINVV2
+
+        dev = SMAspeedwireINVV2(host="192.0.2.1", group="user", password="0000")
+        assert dev.current_sensors() == []
+
+    def test_reflects_live_session_without_poll(self) -> None:
+        from pysma.device_speedwire2 import SMAspeedwireINVV2
+
+        dev = SMAspeedwireINVV2(host="192.0.2.1", group="user", password="0000")
+        dev._session = _make_session()
+        dev._session.handle_newvalue(
+            Sensor("grid_power", "grid_power", unit="W"), 4200, True
+        )
+
+        keys = [s.key for s in dev.current_sensors()]
+        assert "grid_power" in keys
