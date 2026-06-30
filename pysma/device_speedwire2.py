@@ -126,9 +126,6 @@ class _SessionState:
 class _AsyncSpeedwireSession:
     """Asynchronous version of the legacy Speedwire client."""
 
-    sensors: Dict[str, Sensor] = {}
-    data_values = {}
-
     def __init__(self, host: str, password: str, logger: logging.Logger):
         """Prepare session state; actual network setup is deferred."""
         self.host = host
@@ -137,6 +134,11 @@ class _AsyncSpeedwireSession:
         self.logger = logger
         self.retry = 2
         self.timeout = 3.0
+
+        # Per-session state. These used to be class attributes, which meant the
+        # discovered sensors were shared between all inverters in the process.
+        self.sensors: Dict[str, Sensor] = {}
+        self.data_values: Dict[str, Any] = {}
 
         self._loop: asyncio.AbstractEventLoop | None = None
         self._transport: asyncio.transports.DatagramTransport | None = None
@@ -151,14 +153,31 @@ class _AsyncSpeedwireSession:
         self.state = _SessionState()
 
     def handle_newvalue(self, sensor: Sensor, value: Any, overwrite: bool) -> None:
-        """Set the new value to the sensor"""
-        if value is None:
+        """Record the value the inverter reported for a sensor.
+
+        The inverter answers a register request even when the register has no
+        current value -- e.g. instantaneous AC/DC power, voltage, current or
+        frequency while the inverter is asleep at night. Such registers decode
+        to ``None`` (see ``extractvalues``).
+
+        We still register the sensor the first time the inverter reports it, so
+        that discovery reflects what the device *supports* rather than what
+        merely happens to have a value at this moment. Without this,
+        ``get_sensors()`` returns a reduced set whenever it runs while the
+        inverter is asleep (e.g. after a night-time restart), and the missing
+        entities stay unavailable until the integration is reloaded.
+
+        An already known value is never overwritten with ``None``.
+        """
+        if value is None and sensor.key in self.sensors:
+            # Channel already discovered; keep the last known value instead of
+            # clobbering it with a temporary "no value" reading.
             return
         sen = copy.copy(sensor)
-        if sen.factor and sen.factor != 1:
+        if value is not None and sen.factor and sen.factor != 1:
             value /= sen.factor
         sen.value = value
-        if sen.key in self.sensors:
+        if value is not None and sen.key in self.sensors:
             oldValue = self.sensors[sen.key].value
             if oldValue != value:
                 if not overwrite:
