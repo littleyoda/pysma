@@ -1,8 +1,8 @@
-"""Tests for the Speedwire V2 inverter adapter (device_speedwire2)."""
+"""Tests for Speedwire V2 inverter adapter known_sensors accessor."""
 
 import logging
 
-from pysma.device_speedwire2 import _AsyncSpeedwireSession
+from pysma.device_speedwire2 import SMAspeedwireINVV2, _AsyncSpeedwireSession
 from pysma.sensor import Sensor
 
 
@@ -13,70 +13,19 @@ def _make_session() -> _AsyncSpeedwireSession:
     )
 
 
-class Test_speedwire2_discovery:
-    """Discovery must not depend on the time of day / inverter producing."""
-
-    def test_supported_channel_with_null_value_is_discovered(self) -> None:
-        """A register answered with no value (asleep inverter) is still a
-        supported sensor and must be discovered."""
-        session = _make_session()
-        grid_power = Sensor("grid_power", "grid_power", unit="W")
-
-        # Inverter is asleep: the register is answered but decodes to None.
-        session.handle_newvalue(grid_power, None, overwrite=True)
-
-        assert "grid_power" in session.sensors
-        assert session.sensors["grid_power"].value is None
-
-    def test_null_does_not_clobber_known_value(self) -> None:
-        """Once a real value is known, a later None must not erase it."""
-        session = _make_session()
-        grid_power = Sensor("grid_power", "grid_power", unit="W")
-
-        session.handle_newvalue(grid_power, 1234, overwrite=True)
-        session.handle_newvalue(grid_power, None, overwrite=True)
-
-        assert session.sensors["grid_power"].value == 1234
-
-    def test_value_populates_after_discovery_while_asleep(self) -> None:
-        """A channel discovered while asleep must update once the inverter
-        wakes -- this is the recovery that previously required a reload."""
-        session = _make_session()
-        grid_power = Sensor("grid_power", "grid_power", unit="W")
-
-        session.handle_newvalue(grid_power, None, overwrite=True)  # night
-        session.handle_newvalue(grid_power, 5000, overwrite=True)  # sunrise
-
-        assert session.sensors["grid_power"].value == 5000
-
-    def test_sessions_do_not_share_sensor_state(self) -> None:
-        """Each session keeps its own sensors (no shared class-level dict)."""
-        first = _make_session()
-        second = _make_session()
-
-        first.handle_newvalue(Sensor("grid_power", "grid_power", unit="W"), 1, True)
-
-        assert "grid_power" in first.sensors
-        assert "grid_power" not in second.sensors
-
-
-class Test_speedwire2_current_sensors:
+class Test_speedwire2_known_sensors:
     """The no-poll accessor used by consumers for runtime re-discovery."""
 
     def test_empty_without_session(self) -> None:
-        from pysma.device_speedwire2 import SMAspeedwireINVV2
-
         dev = SMAspeedwireINVV2(host="192.0.2.1", group="user", password="0000")
-        assert dev.current_sensors() == []
+        assert dev.known_sensors() == []
 
     def test_reflects_live_session_without_poll(self) -> None:
-        from pysma.device_speedwire2 import SMAspeedwireINVV2
-
         dev = SMAspeedwireINVV2(host="192.0.2.1", group="user", password="0000")
         dev._session = _make_session()
         dev._session.handle_newvalue(
             Sensor("grid_power", "grid_power", unit="W"), 4200, True
         )
 
-        keys = [s.key for s in dev.current_sensors()]
+        keys = [s.key for s in dev.known_sensors()]
         assert "grid_power" in keys

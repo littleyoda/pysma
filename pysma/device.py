@@ -47,6 +47,10 @@ class Device(ABC):
         """Returns a list of all supported sensors"""
 
     @abstractmethod
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without network I/O."""
+
+    @abstractmethod
     async def new_session(self) -> bool:
         """Starts a new session"""
 

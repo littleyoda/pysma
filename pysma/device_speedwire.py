@@ -556,6 +556,12 @@ class SMAspeedwireINV(Device):
             raise e
         return device_sensors
 
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O."""
+        if self._protocol is None:
+            return []
+        return list(self._protocol.sensors.values())
+
     # @override
     async def read(self, sensors: Sensors, deviceID: str | None = None) -> bool:
         if self._protocol is None:

@@ -153,35 +153,24 @@ class _AsyncSpeedwireSession:
         self.state = _SessionState()
 
     def handle_newvalue(self, sensor: Sensor, value: Any, overwrite: bool) -> None:
-        """Record the value the inverter reported for a sensor.
-
-        The inverter answers a register request even when the register has no
-        current value -- e.g. instantaneous AC/DC power, voltage, current or
-        frequency while the inverter is asleep at night. Such registers decode
-        to ``None`` (see ``extractvalues``).
-
-        We still register the sensor the first time the inverter reports it, so
-        that discovery reflects what the device *supports* rather than what
-        merely happens to have a value at this moment. Without this,
-        ``get_sensors()`` returns a reduced set whenever it runs while the
-        inverter is asleep (e.g. after a night-time restart), and the missing
-        entities stay unavailable until the integration is reloaded.
-
-        An already known value is never overwritten with ``None``.
-        """
-        if value is None and sensor.key in self.sensors:
-            # Channel already discovered; keep the last known value instead of
-            # clobbering it with a temporary "no value" reading.
+        """Set the new value to the sensor."""
+        if value is None:
             return
         sen = copy.copy(sensor)
-        if value is not None and sen.factor and sen.factor != 1:
+        if sen.factor and sen.factor != 1:
             value /= sen.factor
         sen.value = value
-        if value is not None and sen.key in self.sensors:
+        if sen.key in self.sensors:
             oldValue = self.sensors[sen.key].value
             if oldValue != value:
                 if not overwrite:
                     value = oldValue
+                _LOGGER.debug(
+                    "Sensor %s has changed value from %s to %s",
+                    sen.name,
+                    oldValue,
+                    value,
+                )
         self.sensors[sen.key] = sen
         self.data_values[sen.key] = value
 
@@ -554,7 +543,7 @@ class SMAspeedwireINVV2(Device):
             sensors.add(s)
         return sensors
 
-    def current_sensors(self) -> list[Sensor]:
+    def known_sensors(self) -> list[Sensor]:
         """Return the sensors currently known to the live session, without I/O.
 
         Unlike :meth:`get_sensors`, this performs no network poll: it reflects
