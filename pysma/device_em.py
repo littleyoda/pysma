@@ -8,6 +8,7 @@ see https://cdn.sma.de/fileadmin/content/www.developer.sma.de/docs/EMETER-Protok
 import asyncio
 import base64
 import copy
+import errno
 import logging
 import socket
 import struct
@@ -45,7 +46,11 @@ class SMAspeedwireEM(Device):
 
     def __init__(self) -> None:
         """init"""
-        self.loop = asyncio.get_event_loop()
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
         self._transport: asyncio.BaseTransport | None = None
         self._protocol: SMAspeedwireEM | None = None
         self.transport: asyncio.BaseTransport | None = None
@@ -240,30 +245,49 @@ class SMAspeedwireEM(Device):
         multicast_group = "239.12.255.254"
         server_address = ("", 9522)
 
+        if getattr(self, "_sock", None) is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(server_address)
+
+        binding_addrs = self._bindingAddr or [socket.INADDR_ANY]
+        normalized_addrs = list(dict.fromkeys(str(addr).strip() for addr in binding_addrs if str(addr).strip()))
+        if not normalized_addrs:
+            normalized_addrs = [socket.INADDR_ANY]
+
         if len(self._bindingAddr) == 0:
             self._bindingAddr = [socket.INADDR_ANY]
             mreq = struct.pack(
                 "4sL", socket.inet_aton(multicast_group), socket.INADDR_ANY
             )
-            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            try:
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            except OSError as exc:
+                if exc.errno not in {errno.EADDRINUSE, errno.EALREADY}:
+                    raise
+                _LOGGER.debug("Multicast membership already active for %s", multicast_group)
         else:
-            _LOGGER.info("Binding to %s" % self._bindingAddr)
-            for addr in self._bindingAddr:
+            _LOGGER.info("Binding to %s", normalized_addrs)
+            for addr in normalized_addrs:
                 try:
-                    mreq = struct.pack(
-                        "4s4s",
-                        socket.inet_aton(multicast_group),
-                        socket.inet_aton(addr),
-                    )
                     sock.setsockopt(
                         socket.IPPROTO_IP,
                         socket.IP_ADD_MEMBERSHIP,
                         socket.inet_aton(multicast_group) + socket.inet_aton(addr),
                     )
-                except BaseException as exc:
+                except OSError as exc:
+                    if exc.errno in {errno.EADDRINUSE, errno.EALREADY}:
+                        _LOGGER.debug(
+                            "Multicast membership already active for %s on %s",
+                            multicast_group,
+                            addr,
+                        )
+                        continue
                     raise RuntimeError(
                         "Could not start multicast for %s. IP of the Interfaces must be used!"
                         % addr
