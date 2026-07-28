@@ -149,6 +149,13 @@ class SHM2(Device):
             device_sensors.add(copy.copy(s.sensor))
         return device_sensors
 
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O."""
+        device_sensors = []
+        for s in modusbus2sensorList:
+            device_sensors.append(copy.copy(s.sensor))
+        return device_sensors
+
     async def _login(self):
         """Login Using Grid Guard Code"""
         _LOGGER.debug("Login with GGC")

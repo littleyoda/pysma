@@ -74,6 +74,14 @@ class SMAspeedwireEM(Device):
                 device_sensors.add(copy.copy(s))
         return device_sensors
 
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O."""
+        device_sensors = []
+        for s in obis2sensor:
+            if s.name is not None:
+                device_sensors.append(copy.copy(s))
+        return device_sensors
+
     async def new_session(self) -> bool:
         """Starts a new session"""
         sock = self._getDiscoverySocket()

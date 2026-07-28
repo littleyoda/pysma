@@ -501,9 +501,12 @@ class SMAwebconnect(Device):
                         new_sensor = copy.copy(sensor_definition)
                         new_sensor.key_idx = idx
                         new_sensor.name = f"{sensor_definition.name}_{idx}"
-                        device_sensors.add(new_sensor)
-
+                        self._sensors = device_sensors
         return device_sensors
+
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O."""
+        return list(self._sensors) if hasattr(self, "_sensors") and self._sensors else []
 
     # @override
     async def get_debug(self) -> Dict:

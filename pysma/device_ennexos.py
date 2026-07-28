@@ -345,6 +345,10 @@ class SMAennexos(Device):
                 device_sensors.add(copy.copy(s))
         return device_sensors
 
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O."""
+        return list(self._sensors.values())
+
     async def close_session(self) -> None:
         """Closes the session."""
 

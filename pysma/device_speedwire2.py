@@ -126,9 +126,6 @@ class _SessionState:
 class _AsyncSpeedwireSession:
     """Asynchronous version of the legacy Speedwire client."""
 
-    sensors: Dict[str, Sensor] = {}
-    data_values = {}
-
     def __init__(self, host: str, password: str, logger: logging.Logger):
         """Prepare session state; actual network setup is deferred."""
         self.host = host
@@ -137,6 +134,11 @@ class _AsyncSpeedwireSession:
         self.logger = logger
         self.retry = 2
         self.timeout = 3.0
+
+        # Per-session state. These used to be class attributes, which meant the
+        # discovered sensors were shared between all inverters in the process.
+        self.sensors: Dict[str, Sensor] = {}
+        self.data_values: Dict[str, Any] = {}
 
         self._loop: asyncio.AbstractEventLoop | None = None
         self._transport: asyncio.transports.DatagramTransport | None = None
@@ -151,7 +153,7 @@ class _AsyncSpeedwireSession:
         self.state = _SessionState()
 
     def handle_newvalue(self, sensor: Sensor, value: Any, overwrite: bool) -> None:
-        """Set the new value to the sensor"""
+        """Set the new value to the sensor."""
         if value is None:
             return
         sen = copy.copy(sensor)
@@ -163,6 +165,12 @@ class _AsyncSpeedwireSession:
             if oldValue != value:
                 if not overwrite:
                     value = oldValue
+                _LOGGER.debug(
+                    "Sensor %s has changed value from %s to %s",
+                    sen.name,
+                    oldValue,
+                    value,
+                )
         self.sensors[sen.key] = sen
         self.data_values[sen.key] = value
 
@@ -534,6 +542,21 @@ class SMAspeedwireINVV2(Device):
         for s in session.sensors.values():
             sensors.add(s)
         return sensors
+
+    def known_sensors(self) -> list[Sensor]:
+        """Return the sensors currently known to the live session, without I/O.
+
+        Unlike :meth:`get_sensors`, this performs no network poll: it reflects
+        whatever the most recent ``update()`` populated. It lets a consumer
+        (e.g. the Home Assistant integration) pick up channels that only appear
+        once the inverter is awake -- e.g. instantaneous power/voltage/current
+        at sunrise after a night-time start -- without re-polling the device.
+        Returns an empty list if no session has been established yet.
+        """
+        session = self._session
+        if session is None:
+            return []
+        return list(session.sensors.values())
 
     async def device_info(self) -> dict:
         """Expose the cached DeviceInformation structure as a dict."""
