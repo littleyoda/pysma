@@ -54,6 +54,7 @@ class SMAspeedwireEM(Device):
         self._transport: asyncio.BaseTransport | None = None
         self._protocol: SMAspeedwireEM | None = None
         self.transport: asyncio.BaseTransport | None = None
+        self._sock: socket.socket | None = None
         self._data_received: asyncio.Future | None = None
         self.di = Debug_information_em()
         self._device_list: Dict[str, DeviceInformation] = {}
@@ -84,12 +85,13 @@ class SMAspeedwireEM(Device):
 
     async def new_session(self) -> bool:
         """Starts a new session"""
-        sock = self._getDiscoverySocket()
-        on_connection_lost = self.loop.create_future()  # noqa F841
-        self._transport, self._protocol = await self.loop.create_datagram_endpoint(
-            lambda: self,  # type: ignore[type-var]
-            sock=sock,
-        )
+        self.loop = asyncio.get_running_loop()
+        if self._transport is None or self._transport.is_closing():
+            sock = self._getDiscoverySocket()
+            self._transport, self._protocol = await self.loop.create_datagram_endpoint(
+                lambda: self,  # type: ignore[type-var]
+                sock=sock,
+            )
         data = None
         try:
             data = await self._get_next_values()
@@ -179,7 +181,16 @@ class SMAspeedwireEM(Device):
         """Closes the session"""
         if self._transport:
             self._transport.close()
-        self._sock.close()
+        self._transport = None
+        self._protocol = None
+        self.transport = None
+        self._data_received = None
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
 
     # @override
     async def detect(self, ip: str) -> List[DiscoveryInformation]:
@@ -264,7 +275,11 @@ class SMAspeedwireEM(Device):
         sock.bind(server_address)
 
         binding_addrs = self._bindingAddr or [socket.INADDR_ANY]
-        normalized_addrs = list(dict.fromkeys(str(addr).strip() for addr in binding_addrs if str(addr).strip()))
+        normalized_addrs = list(
+            dict.fromkeys(
+                str(addr).strip() for addr in binding_addrs if str(addr).strip()
+            )
+        )
         if not normalized_addrs:
             normalized_addrs = [socket.INADDR_ANY]
 
@@ -278,7 +293,9 @@ class SMAspeedwireEM(Device):
             except OSError as exc:
                 if exc.errno not in {errno.EADDRINUSE, errno.EALREADY}:
                     raise
-                _LOGGER.debug("Multicast membership already active for %s", multicast_group)
+                _LOGGER.debug(
+                    "Multicast membership already active for %s", multicast_group
+                )
         else:
             _LOGGER.info("Binding to %s", normalized_addrs)
             for addr in normalized_addrs:

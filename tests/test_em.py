@@ -1,6 +1,7 @@
 """Test pysma init."""
 import asyncio
 import base64
+import contextlib
 import errno
 import json
 import logging
@@ -27,19 +28,45 @@ class Test_SMAEM_class:
         """Basic Tests"""
         sma = SMAspeedwireEM()
         task = asyncio.create_task(self.looper(sma))
-        await sma.new_session()
-        device_info = await sma.device_info()
-        print(device_info)
-        for key in ["manufacturer", "name", "serial", "sw_version", "type"]:
-            assert key in device_info
-            assert (
-                len(device_info[key]) > 0 if isinstance(device_info[key], str) else True
-            )
-            assert device_info[key] > 0 if isinstance(device_info[key], int) else True
-        sensors = await sma.get_sensors()
-        assert len(sensors) >= 17
-        await sma.read(sensors)
-        task.cancel()
+        try:
+            await sma.new_session()
+            device_info = await sma.device_info()
+            print(device_info)
+            for key in ["manufacturer", "name", "serial", "sw_version", "type"]:
+                assert key in device_info
+                assert (
+                    len(device_info[key]) > 0
+                    if isinstance(device_info[key], str)
+                    else True
+                )
+                assert (
+                    device_info[key] > 0 if isinstance(device_info[key], int) else True
+                )
+            sensors = await sma.get_sensors()
+            assert len(sensors) >= 17
+            await sma.read(sensors)
+        finally:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+            await sma.close_session()
+
+    async def test_new_session_reuses_active_transport(self) -> None:
+        """Repeated session setup should reuse the active datagram transport."""
+        sma = SMAspeedwireEM()
+        task = asyncio.create_task(self.looper(sma))
+        try:
+            assert await sma.new_session()
+            transport = sma._transport
+
+            assert await sma.new_session()
+
+            assert sma._transport is transport
+        finally:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+            await sma.close_session()
 
     async def test_debug(self) -> None:
         """Checks the encoding for the debug-information."""
