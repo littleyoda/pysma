@@ -75,6 +75,77 @@ class SMAennexos(Device):
         _LOGGER.debug(f"Ennexos {url} => {self._url}")
         self._new_session_data = {"user": group, "pass": password}
         self._aio_session = session
+        self._token_refresh_handle: asyncio.TimerHandle | None = None
+        self._token_refresh_task: asyncio.Task[None] | None = None
+        self._token_lock = asyncio.Lock()
+        self._closed = True
+
+    def _schedule_token_refresh(self, delay: float) -> None:
+        """Schedule another token request while the session is open."""
+        if not self._closed:
+            if self._token_refresh_handle is not None:
+                self._token_refresh_handle.cancel()
+            self._token_refresh_handle = asyncio.get_running_loop().call_later(
+                delay, self._start_token_refresh
+            )
+
+    def _start_token_refresh(self) -> None:
+        """Start the scheduled token request."""
+        self._token_refresh_handle = None
+        if not self._closed:
+            self._token_refresh_task = asyncio.create_task(self._auto_refresh_token())
+
+    async def _auto_refresh_token(self) -> None:
+        """Refresh the token and retry transient failures."""
+        try:
+            await self._request_token()
+        except Exception:
+            _LOGGER.exception("Could not refresh ennexOS token")
+            self._schedule_token_refresh(60)
+        finally:
+            if self._token_refresh_task is asyncio.current_task():
+                self._token_refresh_task = None
+
+    async def _request_token(self) -> None:
+        """Request an access token with the configured credentials."""
+        async with self._token_lock:
+            if self._closed:
+                return
+            assert self._new_session_data is not None
+            if self._token_refresh_handle is not None:
+                self._token_refresh_handle.cancel()
+                self._token_refresh_handle = None
+
+            _LOGGER.debug(
+                "Trying to login %s %s", self._url, self._new_session_data["user"]
+            )
+            loginurl = self._url + "/api/v1/token"
+            postdata = {
+                "data": {
+                    "grant_type": "password",
+                    "username": self._new_session_data["user"],
+                    "password": self._new_session_data["pass"],
+                }
+            }
+            ret = await self._jsonrequest(loginurl, postdata)
+            if "access_token" not in ret:
+                _LOGGER.debug("Login failed %s", ret)
+                raise SmaAuthenticationException("Login failed!")
+            if self._closed:
+                return
+            self._authorization_header = {
+                "Authorization": "Bearer " + ret["access_token"],
+                "Content-Type": "application/json",
+            }
+            expires_in = ret.get("expires_in", 3600)
+            if (
+                isinstance(expires_in, bool)
+                or not isinstance(expires_in, (int, float))
+                or expires_in <= 0
+            ):
+                expires_in = 3600
+            self._schedule_token_refresh(max(1, int(expires_in * 0.9)))
+            _LOGGER.debug("Login successful")
 
     async def _jsonrequest(
         self, url: str, parameters: Dict[str, Any], method: str = hdrs.METH_POST
@@ -145,24 +216,10 @@ class SMAennexos(Device):
         if self._new_session_data is None:
             _LOGGER.error("User & Pwd not set!")
             return False
-        _LOGGER.debug(f'Trying to login {self._url} {self._new_session_data["user"]}')
-        loginurl = self._url + "/api/v1/token"
-        postdata = {
-            "data": {
-                "grant_type": "password",
-                "username": self._new_session_data["user"],
-                "password": self._new_session_data["pass"],
-            }
-        }
-        ret = await self._jsonrequest(loginurl, postdata)
-        if "access_token" not in ret:
-            _LOGGER.debug(f"Login failed {ret}")
-            raise SmaAuthenticationException("Login failed!")
-        self._authorization_header = {
-            "Authorization": "Bearer " + ret["access_token"],
-            "Content-Type": "application/json",
-        }
-        _LOGGER.debug("Login successful")
+        self._closed = False
+        await self._request_token()
+        if self._closed:
+            return False
 
         for u in [
             "/api/v1/plants/Plant:1",
@@ -351,6 +408,16 @@ class SMAennexos(Device):
 
     async def close_session(self) -> None:
         """Closes the session."""
+        self._closed = True
+        if self._token_refresh_handle is not None:
+            self._token_refresh_handle.cancel()
+            self._token_refresh_handle = None
+        if self._token_refresh_task is not None:
+            self._token_refresh_task.cancel()
+            try:
+                await self._token_refresh_task
+            except asyncio.CancelledError:
+                pass
 
     def _isfloat(self, num: Any) -> bool:
         """Test if num is a float.
