@@ -267,7 +267,12 @@ class _AsyncSpeedwireSession:
 
     async def _send_receive(self, cmd: str, receive: bool = True) -> bytes:
         """Send a command and optionally wait for the inverter response."""
-        await self._ensure_transport()
+        try:
+            await self._ensure_transport()
+        except OSError as exc:
+            raise SmaConnectionException(
+                f"Could not open UDP connection to {self.host}:{self.port}: {exc}"
+            ) from exc
         assert self._protocol is not None
         attempt = 0
         last_exc: Exception | None = None
@@ -304,6 +309,10 @@ class _AsyncSpeedwireSession:
             except (asyncio.TimeoutError, ConnectionError) as exc:
                 self.logger.error("Timeout in repeat %i/%i", attempt, self.retry)
                 last_exc = exc
+            except OSError as exc:
+                raise SmaConnectionException(
+                    f"Could not send UDP request to {self.host}:{self.port}: {exc}"
+                ) from exc
             except (SmaAuthenticationException, SmaReadException):
                 raise
 
