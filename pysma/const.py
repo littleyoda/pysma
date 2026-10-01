@@ -148,7 +148,15 @@ class Identifier:
         "charge_current_limit"  # channel="Parameter.Inverter.AcALim"
     )
     power_limit_in: str = "power_limit_in"  # channel="Parameter.Inverter.WMaxIn"
-    active_power_limitation_gcp = "active_power_limitation_gcp"
+    active_power_limitation_gcp: str = "active_power_limitation_gcp"
+    backup_mode_status: str = "backup_mode_status"
+    current_battery_capacity: str = "current_battery_capacity"
+    remaining_available_discharge_energy_of_the_battery: str = (
+        "remaining_available_discharge_energy_of_the_battery"
+    )
+    remaining_available_charging_energy_of_the_battery: str = (
+        "remaining_available_charging_energy_of_the_battery"
+    )
 
 
 # Data-Source:

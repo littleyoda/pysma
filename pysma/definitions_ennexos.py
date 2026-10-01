@@ -5505,7 +5505,7 @@ enneoxSensors = [
         Sensor("Nameplate.SerNum", None, factor=1, unit=None),
         Sensor("Nameplate.Vendor", None, factor=1, unit=None),
         Sensor("Operation.Bat.Health", None, factor=1, unit=None),
-        Sensor("Operation.BckStt", None, factor=1, unit=None),
+        Sensor("Operation.BckStt", Identifier.backup_mode_status, factor=1, unit=None, mapper=SMATagList),
         Sensor("Operation.DrtStt", None, factor=1, unit=None),
         Sensor("Operation.EVeh.ChaStt", Identifier.operating_status, factor=1, unit=None, mapper=SMATagList),
         Sensor("Operation.EVeh.Health", Identifier.status, factor=1, unit=None, mapper=SMATagList),
@@ -5561,7 +5561,10 @@ enneoxSensors = [
         Sensor("Operation.Dmd.WCtl", Identifier.active_power_limitation, factor=1, unit="W"),
         Sensor("InOut.DigIn.CurWCtlNom", Identifier.power_limit_via_io, factor=1, unit="%"),  # codespell:ignore
         Sensor("Inverter.WMaxIn", Identifier.power_limit_in, factor=1, unit="W"),
-        Sensor("Metering.DyWhOut", Identifier.daily_yield, factor=1, unit="Wh")
+        Sensor("Metering.DyWhOut", Identifier.daily_yield, factor=1, unit="Wh"),
+        Sensor("Bat.Diag.ActlCapacNom", Identifier.current_battery_capacity, factor=1, unit="%"),
+        Sensor("Bat.AvailBatChrgWh", Identifier.remaining_available_charging_energy_of_the_battery, factor=1000, unit="kWh"),
+        Sensor("Bat.AvailBatDschWh", Identifier.remaining_available_discharge_energy_of_the_battery, factor=1000, unit="kWh")
 ]
 # fmt: on
 name2sensor = {i.key: i for i in enneoxSensors}
