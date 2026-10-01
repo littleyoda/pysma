@@ -225,6 +225,8 @@ SMATagList: Dict[int, str] = {
     1395: "DC area",
     1396: "AC grid",
     1438: "Automatic",
+    1440: "Grid mode",
+    1441: "Offgrid operation",
     1455: "Emergency stop",
     1463: "backup",
     1466: "Waiting",
