@@ -646,6 +646,16 @@ SMATagList: Dict[int, str] = {
     19129: "Sunny Boy Smart Energy 4.0",
     19130: "Sunny Boy Smart Energy 5.0",
     19143: "EVC22-3AC-20",
+    # "19230":"Sunny Tripower Hybrid X 5"
+    # "19231":"Sunny Tripower Hybrid X 6"
+    # "19232":"Sunny Tripower Hybrid X 8"
+    # "19234":"Sunny Tripower Hybrid X 12",
+    # "19235":"Sunny Tripower Hybrid X 15",
+    # "19236":"Sunny Tripower Hybrid X 15",
+    # "19237":"Sunny Tripower Hybrid X 20",
+    # "19238":"Sunny Tripower Hybrid X 25",
+    # "19239":"Sunny Tripower Hybrid X 30",
+    19233: "STPH10-60 (Sunny Tripower Hybrid X 10)",
     19235: "STPH15-60 (Sunny Tripower Hybrid X 15)",
     200111: "Not connected",  # EV-Charger
     200112: "Sleep Mode",  # EV-Charger
