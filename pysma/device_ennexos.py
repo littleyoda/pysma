@@ -172,7 +172,9 @@ class SMAennexos(Device):
                 if res.status == 200:
                     resjson = await res.json()
                     return resjson
-                elif res.status == 401 or res.status == 400:
+                elif res.status == 401:
+                    raise SmaAuthenticationException("SMA request unauthorized (HTTP 401)")
+                elif res.status == 400:
                     resjson = await res.json()
                     _LOGGER.error("Error " + str(res.status))
                     _LOGGER.error(resjson)
@@ -186,8 +188,6 @@ class SMAennexos(Device):
             _LOGGER.error(
                 "Request to %s did not return a valid json. Code %d", url, res.status
             )
-            if res.status == 401:
-                raise SmaAuthenticationException("Token failed and no json response!")
         except client_exceptions.ServerDisconnectedError as exc:
             _LOGGER.error(
                 f"Timeout while requesting {url} {exc}. (Probably wrong ip, wrong hostname or wrong setting for http/https)"
