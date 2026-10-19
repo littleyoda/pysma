@@ -649,7 +649,7 @@ SMATagList: Dict[int, str] = {
     # "19230":"Sunny Tripower Hybrid X 5"
     # "19231":"Sunny Tripower Hybrid X 6"
     # "19232":"Sunny Tripower Hybrid X 8"
-    # "19234":"Sunny Tripower Hybrid X 12",
+    19234: "Sunny Tripower Hybrid X 12",
     # "19235":"Sunny Tripower Hybrid X 15",
     # "19236":"Sunny Tripower Hybrid X 15",
     # "19237":"Sunny Tripower Hybrid X 20",
