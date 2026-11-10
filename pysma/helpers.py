@@ -1,9 +1,16 @@
 """Helper functions for the pysma library."""
 
+import asyncio
 import dataclasses
 import json
-from typing import Any, Dict
+import logging
+import socket
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
+
+_LOGGER = logging.getLogger(__name__)
+
+SPEEDWIRE_PORT = 9522
 
 
 class BetterJSONEncoder(json.JSONEncoder):
@@ -62,3 +69,43 @@ def isInteger(s: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+async def create_speedwire_socket(
+    host: str, port: int = SPEEDWIRE_PORT
+) -> Optional[socket.socket]:
+    """Create a UDP socket bound to local port 9522 and connected to host.
+
+    Some older Speedwire devices (e.g. Sunny Boy Smart Energy SB 3600SE-10)
+    only answer requests whose UDP source port is 9522; requests sent from an
+    ephemeral port are silently ignored. Sunny Explorer always uses 9522.
+
+    SO_REUSEADDR allows sharing the port with other Speedwire sockets (e.g. the
+    Energy Meter multicast listener). The socket is connected, so the kernel
+    delivers the device's replies to this socket and not to other listeners.
+
+    Returns None if the socket cannot be set up, so callers can fall back to an
+    ephemeral source port (previous behaviour).
+    """
+    loop = asyncio.get_running_loop()
+    sock: Optional[socket.socket] = None
+    try:
+        infos = await loop.getaddrinfo(
+            host, port, family=socket.AF_INET, type=socket.SOCK_DGRAM
+        )
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("", SPEEDWIRE_PORT))
+        sock.connect(infos[0][4])
+        sock.setblocking(False)
+        return sock
+    except OSError as err:
+        _LOGGER.debug(
+            "Cannot use local port %s for %s (%s), using ephemeral port",
+            SPEEDWIRE_PORT,
+            host,
+            err,
+        )
+        if sock is not None:
+            sock.close()
+        return None

@@ -23,7 +23,7 @@ from .exceptions import (
     SmaConnectionException,
     SmaReadException,
 )
-from .helpers import version_int_to_string
+from .helpers import create_speedwire_socket, version_int_to_string
 from .sensor import Sensor, Sensors
 
 _LOGGER = logging.getLogger(__name__)
@@ -219,10 +219,21 @@ class _AsyncSpeedwireSession:
         if self._transport is not None:
             return
         self._loop = asyncio.get_running_loop()
-        transport, protocol = await self._loop.create_datagram_endpoint(
-            lambda: _SpeedwireProtocol(self._loop, self.logger),
-            remote_addr=(self.host, self.port),
-        )
+        loop = self._loop
+
+        def factory() -> "_SpeedwireProtocol":
+            return _SpeedwireProtocol(loop, self.logger)
+
+        # Some devices only answer requests sent from source port 9522
+        sock = await create_speedwire_socket(self.host, self.port)
+        if sock is not None:
+            transport, protocol = await loop.create_datagram_endpoint(
+                factory, sock=sock
+            )
+        else:
+            transport, protocol = await loop.create_datagram_endpoint(
+                factory, remote_addr=(self.host, self.port)
+            )
         self._transport = transport  # type: ignore[assignment]
         self._protocol = protocol
 
