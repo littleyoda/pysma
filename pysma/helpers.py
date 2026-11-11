@@ -5,12 +5,20 @@ import dataclasses
 import json
 import logging
 import socket
+import threading
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 _LOGGER = logging.getLogger(__name__)
 
 SPEEDWIRE_PORT = 9522
+
+# Remote (ip, port) -> socket currently bound to local port 9522 for that device.
+# Two connected sockets with the same local and remote address/port pair would
+# share replies (the kernel delivers to only one of them), so at most one socket
+# per device may use local port 9522 within this process.
+_speedwire_port_owners: Dict[Any, socket.socket] = {}
+_speedwire_port_lock = threading.Lock()
 
 
 class BetterJSONEncoder(json.JSONEncoder):
@@ -82,9 +90,14 @@ async def create_speedwire_socket(
 
     SO_REUSEADDR allows sharing the port with other Speedwire sockets (e.g. the
     Energy Meter multicast listener). The socket is connected, so the kernel
-    delivers the device's replies to this socket and not to other listeners.
+    delivers the device's replies to this socket and not to unconnected
+    listeners.
 
-    Returns None if the socket cannot be set up, so callers can fall back to an
+    Only one socket per device may use local port 9522 at a time: two connected
+    sockets with the same local and remote address/port pair would receive each
+    other's replies. If another open socket in this process already uses 9522
+    for the same device (e.g. concurrent probes in autoDetect), or the socket
+    cannot be set up, None is returned so the caller falls back to an
     ephemeral source port (previous behaviour).
     """
     loop = asyncio.get_running_loop()
@@ -93,11 +106,24 @@ async def create_speedwire_socket(
         infos = await loop.getaddrinfo(
             host, port, family=socket.AF_INET, type=socket.SOCK_DGRAM
         )
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("", SPEEDWIRE_PORT))
-        sock.connect(infos[0][4])
-        sock.setblocking(False)
+        remote = infos[0][4]
+        with _speedwire_port_lock:
+            owner = _speedwire_port_owners.get(remote)
+            if owner is not None and owner.fileno() != -1:
+                _LOGGER.debug(
+                    "Local port %s already in use for %s, using ephemeral port",
+                    SPEEDWIRE_PORT,
+                    host,
+                )
+                return None
+            sock = socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+            )
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("", SPEEDWIRE_PORT))
+            sock.connect(remote)
+            sock.setblocking(False)
+            _speedwire_port_owners[remote] = sock
         return sock
     except OSError as err:
         _LOGGER.debug(
