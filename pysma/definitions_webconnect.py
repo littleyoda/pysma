@@ -203,6 +203,20 @@ current_l3 = Sensor(
 #: Total Current
 current_total = Sensor("6100_00664F00", Identifier.current_total, unit="A", factor=1000)
 
+# AC Side - Backup (Ongrid) - Phase current
+#: Backup (Ongrid) current for phase 1
+backup_current_l1 = Sensor(
+    "6100_40574600", Identifier.backup_current_l1, unit="A", factor=1000
+)
+#: Backup (Ongrid) current for phase 2
+backup_current_l2 = Sensor(
+    "6100_40574700", Identifier.backup_current_l2, unit="A", factor=1000
+)
+#: Backup (Ongrid) current for phase 3
+backup_current_l3 = Sensor(
+    "6100_40574800", Identifier.backup_current_l3, unit="A", factor=1000
+)
+
 # AC Side - Grid measurements - Phase voltage
 #: Voltage for phase 1
 voltage_l1 = Sensor(
@@ -592,6 +606,9 @@ energy_meter = Sensor("6800_008AA300", Identifier.energy_meter)
 
 sensor_map = {
     GENERIC_SENSORS: [
+        backup_current_l1,
+        backup_current_l2,
+        backup_current_l3,
         battery_capacity_a,
         battery_capacity_b,
         battery_capacity_c,
