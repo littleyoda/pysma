@@ -31,7 +31,7 @@ from .exceptions import (
     SmaConnectionException,
     SmaReadException,
 )
-from .helpers import version_int_to_string
+from .helpers import create_speedwire_socket, version_int_to_string
 from .sensor import Sensor, Sensors
 
 _LOGGER = logging.getLogger(__name__)
@@ -469,14 +469,23 @@ class SMAspeedwireINV(Device):
             raise ValueError("Password not set!")
         if len(self._password) > 12:
             raise ValueError("Password to long! Max 12 Characters.")
-        self._transport, self._protocol = await loop.create_datagram_endpoint(
-            lambda: SMAClientProtocol(
+        def factory() -> "SMAClientProtocol":
+            return SMAClientProtocol(
                 self._password,  # type: ignore[arg-type]
                 on_connection_lost,
                 self._options,
-            ),
-            remote_addr=(self._host, 9522),
-        )
+            )
+
+        # Some devices only answer requests sent from source port 9522
+        sock = await create_speedwire_socket(self._host)
+        if sock is not None:
+            self._transport, self._protocol = await loop.create_datagram_endpoint(
+                factory, sock=sock
+            )
+        else:
+            self._transport, self._protocol = await loop.create_datagram_endpoint(
+                factory, remote_addr=(self._host, 9522)
+            )
 
     # @override
     async def new_session(self) -> bool:
